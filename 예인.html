@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI가 만든 사진일까? 진짜 사진일까?</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            /* 멋진 그라데이션 배경 적용 */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        /* 화면 공통 스타일 */
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+        
+        /* 메뉴 화면 버튼 */
+        .menu-screen button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+        }
+        .btn-level-1 { background-color: #4dabf7; }
+        .btn-level-2 { background-color: #40c057; }
+        .btn-level-3 { background-color: #fa5252; }
+        .menu-screen button:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        /* 퀴즈 화면 스타일 */
+        .image-box {
+            width: 100%;
+            height: 320px; /* 사진이 잘리지 않도록 높이 확대 */
+            background-color: #f1f3f5; /* 여백 색상 보완 */
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 사진이 잘리지 않고 비율에 맞게 모두 표시되도록 변경 */
+        }
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+        button.choice-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.2s;
+        }
+        .btn-ai { background-color: #ff6b6b; }
+        .btn-real { background-color: #339af0; }
+        button.choice-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        #result {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 24px;
+        }
+        #score {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .back-btn {
+            margin-top: 15px;
+            background: none;
+            border: none;
+            color: #868e96;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 0.9rem;
+        }
+
+        /* 결과 화면 스타일 */
+        .result-screen h2 {
+            color: #2b8a3e;
+            margin-bottom: 10px;
+        }
+        .result-screen p {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .result-screen button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-retry { background-color: #748ffc; }
+        .btn-home { background-color: #868e96; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>AI가 만든 사진일까? 진짜 사진일까?</h1>
+
+        <!-- 1. 난이도 선택 화면 -->
+        <div id="menu-screen" class="screen active menu-screen">
+            <p style="margin-bottom: 20px; color: #555;">원하는 난이도를 선택하세요! (총 10문제)</p>
+            <button class="btn-level-1" onclick="startQuiz(0)">1단계 (쉬움)</button>
+            <button class="btn-level-2" onclick="startQuiz(1)">2단계 (보통)</button>
+            <button class="btn-level-3" onclick="startQuiz(2)">3단계 (어려움)</button>
+        </div>
+
+        <!-- 2. 실제 퀴즈 풀기 화면 -->
+        <div id="quiz-screen" class="screen">
+            <div id="level-title" style="font-weight: bold; color: #748ffc; margin-bottom: 10px;"></div>
+            
+            <div class="image-box">
+                <img id="quiz-img" src="" alt="퀴즈 이미지">
+            </div>
+
+            <div class="btn-container">
+                <button class="choice-btn btn-ai" onclick="checkAnswer('ai')">🤖 AI 사진</button>
+                <button class="choice-btn btn-real" onclick="checkAnswer('real')">📸 진짜 사진</button>
+            </div>
+            
+            <div id="result"></div>
+            <div id="score">진행도: 1 / 10</div>
+            
+            <button class="back-btn" onclick="goToMenu()">메뉴로 돌아가기</button>
+        </div>
+
+        <!-- 3. 10문제 완료 결과 화면 -->
+        <div id="result-screen" class="screen result-screen">
+            <h2>퀴즈 완료! 🎉</h2>
+            <p id="final-score-text">10문제 중 0문제를 맞혔습니다!</p>
+            <button class="btn-retry" onclick="startQuiz(currentDiffIdx)">다시 풀기</button>
+            <button class="btn-home" onclick="goToMenu()">메뉴로 가기</button>
+        </div>
+    </div>
+
+    <script>
+        // 난이도별 문제 데이터 (각 단계별로 10개씩 구성)
+        const allLevelsData = [
+            // 1단계 (쉬움)
+            [
+                { img: "https://img.somake.ai/cdn-cgi/image/width=800,quality=80,format=auto,fit=scale-down/tools/covers/ai-talking-pet_cover_1768989081.png", answer: "ai" },
+                { img: "https://png.pngtree.com/background/20230513/original/pngtree-portrait-of-a-tiger-lying-down-in-snow-picture-image_2504944.jpg", answer: "real" },
+                { img: "https://png.pngtree.com/background/20230528/original/pngtree-one-of-the-wild-dolphins-that-are-in-sea-picture-image_2773696.jpg", answer: "real" },
+                { img: "https://pub-6e1d14db56fc424cb87c4c1aa1f83d52.r2.dev/d4c09d5ea62a488eb2e7203e2924679a.png", answer: "ai" },
+                { img: "https://pixnio.com/free-images/2018/06/07/2018-06-07-19-24-42.jpg", answer: "real" },
+                { img: "https://cdn.pixabay.com/photo/2024/02/08/07/26/ai-generated-8560443_1280.jpg", answer: "ai" },
+                { img: "https://img.freepik.com/free-photo/artistic-pastel-animal-portrait-illustration_23-2151904076.jpg", answer: "ai" },
+                { img: "https://cdn.informaticsview.com/news/photo/202509/2960_13208_2327.jpg", answer: "real" },
+                { img: "https://png.pngtree.com/background/20230513/original/pngtree-fox-sitting-on-a-log-looking-in-the-distance-picture-image_2506642.jpg", answer: "ai" },
+                { img: "https://cdn.pixabay.com/photo/2023/06/14/05/48/rabbit-8062342_1280.jpg", answer: "real" }
+            ],
+            // 2단계 (보통) - 정답 설정 완료
+            [
+                { img: "https://tse3.mm.bing.net/th/id/OIP.47OiLP99CMJADJX9CoHCkAHaE8?r=0&pid=Api&h=220&P=0", answer: "real" },
+                { img: "https://cdn.pixabay.com/photo/2024/05/20/12/59/ai-generated-8775125_1280.jpg", answer: "ai" },
+                { img: "https://d1a66n3120ol3x.cloudfront.net/landing/tools/food-flat-lay/hero-6448121a-a4bc-4e99-9024-a38a89496496.jpg", answer: "ai" },
+                { img: "https://tse1.mm.bing.net/th/id/OIP.HACC7N-aXzigY0rSeXQAcgHaEK?r=0&pid=Api&h=220&P=0", answer: "real" },
+                { img: "https://cdn.pixabay.com/photo/2021/04/25/08/44/food-6205911_640.jpg", answer: "real" },
+                { img: "https://cdn.pixabay.com/photo/2020/10/07/14/09/food-5635308_960_720.jpg", answer: "real" },
+                { img: "https://tse2.mm.bing.net/th/id/OIP.GIzBmQf8ziScqQ47B0MaAAHaEI?r=0&pid=Api&h=220&P=0", answer: "ai" },
+                { img: "https://contents-cdn.viewus.co.kr/image/2025/05/CP-2025-0003/image-75e04fd1-8630-4175-895f-54b4a7f0e461.jpeg", answer: "real" },
+                { img: "https://cdn.pixabay.com/photo/2025/03/23/13/49/ai-generated-9488780_640.png", answer: "ai" },
+                { img: "https://png.pngtree.com/background/20230424/original/pngtree-yakumi-chicken-is-served-on-rice-picture-image_2456567.jpg", answer: "ai" }
+            ],
+            // 3단계 (어려움) - 정답 설정 완료
+            [
+                { img: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1MdRIR.img?w=600&h=900&m=4&q=84", answer: "ai" },
+                { img: "https://i.pinimg.com/originals/f5/2d/b6/f52db6d8203dc652b845b350eadc2939.jpg", answer: "ai" },
+                { img: "https://img1.daumcdn.net/thumb/S1200x630/?fname=https://t1.daumcdn.net/news/202507/24/bntnews/20250724150239671ubog.jpg", answer: "real" },
+                { img: "https://media.nudge-community.com/8746400?w=856&format=avif", answer: "ai" },
+                { img: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA24k1FK.img?w=1540&h=800&m=4&q=70", answer: "ai" },
+                { img: "https://korea.star-wiki.com/wp-content/uploads/sites/2/2025/07/image-4-819x1024.png", answer: "real" },
+                { img: "https://image.fmkorea.com/files/attach/new5/20250327/8180697602_3655109_45e59e0e0a1cbda41d7ec11202ec5546.jpg", answer: "real" },
+                { img: "https://image.fnnews.com/resource/media/image/2023/07/15/202307151645485184_l.jpg", answer: "ai" },
+                { img: "https://img.hankyung.com/photo/202503/01.39945955.1.png", answer: "real" },
+                { img: "https://ssehada.com/static/images/celebrities/sonyejin.jpg", answer: "real" }
+            ]
+        ];
+
+        let currentDiffIdx = 0;
+        let currentQuizIdx = 0;
+        let score = 0;
+
+        const menuScreen = document.getElementById("menu-screen");
+        const quizScreen = document.getElementById("quiz-screen");
+        const resultScreen = document.getElementById("result-screen");
+        
+        const imgElement = document.getElementById("quiz-img");
+        const resultElement = document.getElementById("result");
+        const scoreElement = document.getElementById("score");
+        const levelTitle = document.getElementById("level-title");
+        const finalScoreText = document.getElementById("final-score-text");
+
+        const levelNames = ["1단계 (쉬움)", "2단계 (보통)", "3단계 (어려움)"];
+
+        function showScreen(screenElement) {
+            menuScreen.classList.remove("active");
+            quizScreen.classList.remove("active");
+            resultScreen.classList.remove("active");
+            
+            screenElement.classList.add("active");
+        }
+
+        function startQuiz(diffIndex) {
+            currentDiffIdx = diffIndex;
+            currentQuizIdx = 0;
+            score = 0;
+
+            showScreen(quizScreen);
+            levelTitle.innerText = levelNames[diffIndex];
+            loadQuiz();
+        }
+
+        function goToMenu() {
+            showScreen(menuScreen);
+        }
+
+        function loadQuiz() {
+            const currentQuiz = allLevelsData[currentDiffIdx][currentQuizIdx];
+            imgElement.src = currentQuiz.img;
+            resultElement.innerText = "";
+            scoreElement.innerText = `진행도: ${currentQuizIdx + 1} / 10`;
+        }
+
+        function checkAnswer(userChoice) {
+            const currentQuiz = allLevelsData[currentDiffIdx][currentQuizIdx];
+
+            if (userChoice === currentQuiz.answer) {
+                resultElement.style.color = "#2b8a3e";
+                resultElement.innerText = "정답입니다! 🎉";
+                score++;
+            } else {
+                resultElement.style.color = "#c92a2a";
+                resultElement.innerText = "틀렸습니다! 🥲";
+            }
+
+            setTimeout(() => {
+                currentQuizIdx++;
+                if (currentQuizIdx < 10) {
+                    loadQuiz();
+                } else {
+                    showScreen(resultScreen);
+                    finalScoreText.innerText = `총 10문제 중 ${score}문제를 맞혔습니다!`;
+                }
+            }, 1200);
+        }
+    </script>
+
+</body>
+</html>
